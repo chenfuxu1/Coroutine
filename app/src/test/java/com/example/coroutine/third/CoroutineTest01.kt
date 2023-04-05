@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference
  * DateTime: 2022/8/24 20:03
  *
  * 协程上下文: CoroutineContext是一组用于定义协程行为的元素，它有下面几部分组成
- * Jon：控制协程的生命周期
+ * Job：控制协程的生命周期
  * CoroutineDispatcher：向合适的线程分发任务
  * CoroutineName: 协程的名称，调试的时候很有用
  * CoroutineExceptionHandler：处理未被捕捉的异常
@@ -34,8 +34,8 @@ class CoroutineTest01 {
 
     /**
      * 协程上下文的继承
-     * 对于新创新的协程，它的CoroutineContext会包含一个全新的Job实例，他会帮助我们控制协程的生命周期
-     * 而剩下的元素会从CoroutineContext的父类继承
+     * 对于新创新的协程，它的 CoroutineContext 会包含一个全新的Job实例，他会帮助我们控制协程的生命周期
+     * 而剩下的元素会从 CoroutineContext 的父类继承
      * 该父类可能是另外一个协程或者创建该协程的CoroutineScope
      */
     @Test
@@ -45,7 +45,7 @@ class CoroutineTest01 {
         val job = scope.launch {
             // 新的协程会将 CoroutineScope 作为父类
             println("${coroutineContext[Job]} == ${Thread.currentThread().name}")
-            // async 是 launch 的之协程，除了 Job 其余的都来自 launch
+            // async 是 launch 的子协程，除了 Job 其余的都来自 launch
             val result = async {
                 // 通过 async 创建的新协程会将当前协程作为父级
                 println("${coroutineContext[Job]} == ${Thread.currentThread().name}")
@@ -100,7 +100,7 @@ class CoroutineTest01 {
             throw ArithmeticException()
         }
         try {
-            // 通过async构建的根协程，依赖用户消费，在调用await时抛出
+            // 通过 async 构建的根协程，依赖用户消费，在调用 await 时抛出
             deferred.await()
         } catch (e: Exception) {
             println("捕获异常：ArithmeticException")
@@ -156,7 +156,7 @@ class CoroutineTest01 {
         }
 
         delay(200)
-        // supervisor.cancel() 也会使所有子协程都退出
+        supervisor.cancel() // 也会使所有子协程都退出
         joinAll(job1, job2)
     }
 
@@ -188,21 +188,25 @@ class CoroutineTest01 {
      */
     @Test
     fun `test supervisorScope2`() = runBlocking<Unit> {
-        supervisorScope {
-            val job1 = launch {
-                try {
-                    println("这是子任务1")
-                    delay(Long.MAX_VALUE)
-                } finally {
-                    println("子任务1被取消")
+        try {
+            supervisorScope {
+                val job1 = launch {
+                    try {
+                        println("这是子任务1")
+                        delay(Long.MAX_VALUE)
+                    } finally {
+                        println("子任务1被取消")
+                    }
                 }
-            }
-            // 让一下执行权，不然会一直执行子任务1
-            yield()
-            println("作用域中开始抛出异常")
-            // 由于这里执行失败，子作业任务1也会失败
-            throw AssertionError()
+                // 让一下执行权，不然会一直执行子任务1
+                yield()
+                println("作用域中开始抛出异常")
+                // 由于这里执行失败，子作业任务1也会失败
+                throw AssertionError()
 
+            }
+        } catch (e: AssertionError) {
+            println("捕获到 AssertionError 异常")
         }
     }
 
@@ -226,5 +230,46 @@ class CoroutineTest01 {
 
         job.join()
         deferred.await()
+    }
+
+    @Test
+    fun `test Coroutine exception handler2`() = runBlocking<Unit> {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            println("捕获异常 $exception")
+        }
+
+        val scope = CoroutineScope(Job())
+        val job = scope.launch(handler) {
+            launch {
+                /**
+                 * 能捕获到异常，因为是 launch
+                 * 且是在 CoroutineScope 中的子协程
+                 */
+                throw IllegalArgumentException()
+            }
+        }
+        job.join()
+    }
+
+    /**
+     * 不能捕获的异常
+     */
+    @Test
+    fun `test Coroutine exception handler3`() = runBlocking<Unit> {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            println("捕获异常 $exception")
+        }
+
+        val scope = CoroutineScope(Job())
+        val job = scope.launch {
+            launch(handler) {
+                /**
+                 * 不能捕获到异常
+                 * 异常捕获器 handler 需要在最外层的协程才可以
+                 */
+                throw IllegalArgumentException()
+            }
+        }
+        job.join()
     }
 }

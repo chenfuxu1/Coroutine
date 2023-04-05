@@ -13,7 +13,6 @@ import kotlin.system.measureTimeMillis
  *
  **/
 class CoroutineTest01 {
-
     /**
      * 测试协程的创建
      * 该Test函数是在主线程执行的
@@ -31,7 +30,7 @@ class CoroutineTest01 {
     fun `test coroutine builder`() = runBlocking {
         // launch: 返回一个job并且不附带任何结果值
         val jobLaunch = launch {
-            delay(200)
+            delay(300)
             println("job launch finished")
         }
 
@@ -47,7 +46,7 @@ class CoroutineTest01 {
 
     /**
      * 测试协程等待
-     * 等待jobLaunch1执行完了，再执行其他的协程
+     * 等待 jobLaunch1 执行完了，再执行其他的协程
      */
     @Test
     fun `test coroutine join`() = runBlocking {
@@ -56,13 +55,13 @@ class CoroutineTest01 {
             delay(2000)
             println("job launch1 finished")
         }
-        jobLaunch1.join()
+        jobLaunch1.join() // 执行完了才会执行后面的协程
         val jobLaunch2 = launch {
             delay(200)
             println("job launch2 finished")
         }
         val jobLaunch3 = launch {
-            delay(200)
+            delay(100)
             println("job launch3 finished")
         }
 
@@ -72,6 +71,7 @@ class CoroutineTest01 {
      * 测试协程等待
      *
      * join和await都是挂起函数，不会阻塞主线程
+     * await 可以拿到协程的返回值
      */
     @Test
     fun `test coroutine await`() = runBlocking {
@@ -79,13 +79,13 @@ class CoroutineTest01 {
             delay(2000)
             println("job async1 finished")
         }
-        jobAsync1.await()
+        jobAsync1.await() // 执行完了才会执行后面的协程
         val jobAsync2 = async {
             delay(200)
             println("job async2 finished")
         }
         val jobAsync3 = async {
-            delay(200)
+            delay(100)
             println("job async3 finished")
         }
     }

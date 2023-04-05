@@ -18,6 +18,7 @@ import org.junit.Test
 class CoroutineTest02 {
     /**
      * 测试协程的启动模式
+     * DEFAULT
      */
     @Test
     fun `test coroutine start mode`() = runBlocking {
@@ -33,7 +34,7 @@ class CoroutineTest02 {
     /**
      * ATOMIC: 协程创建后，立即开始调度，协程执行到第一个挂起点之前不响应取消
      * 使用对象：
-     * 例如在delay(1000)之前有必须要完成的操作，使用这种模式
+     * 例如在delay(10000)之前有必须要完成的操作，使用这种模式
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
@@ -70,7 +71,7 @@ class CoroutineTest02 {
 
     /**
      * UNDISPATCHED: 协程创建后立即在当前函数调用栈中执行，直到遇到第一个真正挂起的点
-     * UNDISPATCHED表示不转发
+     * UNDISPATCHED 表示不转发
      *
      * 如何在通过Dispatchers.IO让使用的协程仍然在主线程中？
      * 可以使用UNDISPATCHED启动模式，因为协程创建后立即在当前函数调用栈中执行

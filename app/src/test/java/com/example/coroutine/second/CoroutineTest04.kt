@@ -35,7 +35,7 @@ class CoroutineTest04 {
         delay(100)
         /**
          * 取消作用域会取消他的所有子协程
-         * 所以，又不会打印
+         * 所以，都不会打印
          */
         scope.cancel()
         println("主线程结束")
@@ -65,7 +65,7 @@ class CoroutineTest04 {
     }
 
     /**
-     * 3、协程通过掏出一个特殊的异常CancellationException来处理取消操作
+     * 3、协程通过抛出一个特殊的异常CancellationException来处理取消操作
      */
     @OptIn(DelicateCoroutinesApi::class)
     @Test
@@ -84,11 +84,11 @@ class CoroutineTest04 {
             }
         }
         delay(100)
-        // job1.cancel(CancellationException("取消"))
+        job1.cancel(CancellationException("取消"))
         // 这样可以打印出job 1
-        // job1.join()
+        job1.join()
         // 等价于
-        job1.cancelAndJoin()
+        // job1.cancelAndJoin()
     }
 
     /**
@@ -175,6 +175,7 @@ class CoroutineTest04 {
 
     /**
      * 取消协程副作用
+     * 需要增加 try/catch 在 finally 中释放资源
      */
     @Test
     fun `test release resources`() = runBlocking {
